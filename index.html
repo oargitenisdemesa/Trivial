@@ -33,6 +33,7 @@ input{width:100%;font:inherit;font-size:1.05rem;padding:13px;margin-bottom:10px;
 .opts button.ok{background:#1f7a46;border-color:#4ade80}.opts button.ko{background:#8a2b38;border-color:#ff8a8a}
 .res{margin:14px 0 4px;font-size:1.1rem}
 .hide{display:none!important}
+#lvl button{width:auto;padding:10px 16px}
 .tools{display:flex;gap:8px;justify-content:center;margin-bottom:14px}.tools button{padding:9px 14px;font-size:.95rem}
 #win{position:fixed;inset:0;z-index:5;background:rgba(10,12,30,.88);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px}
 #win .c{font-size:clamp(1.6rem,7vw,2.6rem);color:#f5c542;letter-spacing:.06em;margin:0}
@@ -49,6 +50,8 @@ input{width:100%;font:inherit;font-size:1.05rem;padding:13px;margin-bottom:10px;
 <section id="setup">
 <p class="sub">¿Cuántos jugáis?</p>
 <div class="cnt" id="cnt"></div>
+<p class="sub">Dificultad de las preguntas</p>
+<div class="cnt" id="lvl"></div>
 <div id="names"></div>
 <div class="err" id="err"></div>
 <button id="go" style="width:100%">Empezar partida</button>
@@ -93,10 +96,88 @@ const Q=[
 ["¿Cuál es el símbolo químico del oro?|Au|Ag|Or|Go","¿Cuál es el planeta más grande del Sistema Solar?|Júpiter|Saturno|Neptuno|Tierra","¿Cuántos huesos tiene un cuerpo humano adulto?|206|180|250|300","¿Qué gas absorben las plantas en la fotosíntesis?|Dióxido de carbono|Oxígeno|Nitrógeno|Hidrógeno","¿Cuál es el animal terrestre más rápido?|Guepardo|León|Caballo|Leopardo","¿Cuál es el órgano más grande del cuerpo humano?|La piel|El hígado|El pulmón|El intestino","¿A cuántos grados Celsius hierve el agua a nivel del mar?|100|90|120|80","¿Qué planeta se conoce como el planeta rojo?|Marte|Venus|Mercurio|Urano"],
 ["¿Cada cuántos años se celebran los Juegos Olímpicos de verano?|4|2|3|5","¿Cuántos jugadores de un equipo de fútbol hay en el campo?|11|9|10|12","¿En qué deporte se disputa Wimbledon?|Tenis|Golf|Críquet|Béisbol","¿Qué selección ganó el Mundial de fútbol de 2010?|España|Alemania|Brasil|Países Bajos","¿Cuántos puntos vale un triple en baloncesto?|3|2|4|5","¿En qué deporte destacó Rafa Nadal?|Tenis|Golf|Pádel|Ciclismo","¿Cuánto mide una maratón?|42,195 km|21 km|50 km|30 km","¿Qué deporte practica Usain Bolt?|Atletismo|Natación|Ciclismo|Boxeo"]
 ];
+// Niveles: fácil = índices E de Q; medio = el resto de Q + QM; difícil = QD
+const LVN=["Fácil","Medio","Difícil"];
+const E=[[2,3,4,6,7],[1,2,3,4,5,6],[0,1,4,5],[0,1,2,5,6],[1,4,5,6,7],[0,1,2,4,5,7]];
+const QM=[
+["¿Cuál es la capital de Turquía?|Ankara|Estambul|Esmirna|Antalya","¿Cuál es el río más largo de Europa?|Volga|Danubio|Rin|Sena"],
+["¿Quién dirigió «Pulp Fiction»?|Quentin Tarantino|Martin Scorsese|David Fincher|Tim Burton","¿Quién es el cantante de U2?|Bono|Sting|Bruce Springsteen|Freddie Mercury","¿Qué serie de Netflix tiene como protagonista a Eleven?|Stranger Things|The Crown|Dark|Élite"],
+["¿En qué año terminó la Guerra Civil Española?|1939|1936|1945|1931"],
+["¿Quién escribió «La sombra del viento»?|Carlos Ruiz Zafón|Arturo Pérez-Reverte|Javier Marías|Eduardo Mendoza","¿Quién pintó «El grito»?|Edvard Munch|Van Gogh|Klimt|Goya"],
+["¿Cuál es el hueso más largo del cuerpo humano?|Fémur|Tibia|Húmero|Peroné","¿Qué vitamina produce el cuerpo con la luz del sol?|Vitamina D|Vitamina C|Vitamina A|Vitamina B12"],
+["¿En qué país se inventó el judo?|Japón|China|Corea|Brasil","¿Qué ciclista español ganó cinco Tours seguidos?|Miguel Indurain|Alberto Contador|Pedro Delgado|Carlos Sastre","¿Qué selección ganó el Mundial de fútbol de 2022?|Argentina|Francia|Croacia|Brasil"]
+];
+const QD=[
+["¿Cuál es la capital de Kazajistán?|Astaná|Almaty|Taskent|Biskek","¿Qué país tiene más husos horarios contando sus territorios de ultramar?|Francia|Rusia|Estados Unidos|Reino Unido","¿Cuál es el lago más profundo del mundo?|Baikal|Titicaca|Victoria|Superior","¿Qué estrecho separa Asia de América?|Estrecho de Bering|Estrecho de Magallanes|Estrecho de Gibraltar|Estrecho de Ormuz"],
+["¿Quién dirigió «El Padrino»?|Francis Ford Coppola|Martin Scorsese|Brian De Palma|Sidney Lumet","¿Quién dirigió «Hable con ella»?|Pedro Almodóvar|Alejandro Amenábar|Fernando Trueba|Julio Medem","¿Cómo se llama el álbum de Michael Jackson de 1982?|Thriller|Bad|Dangerous|Off the Wall","¿Quién compuso la música de «La guerra de las galaxias»?|John Williams|Hans Zimmer|Ennio Morricone|Howard Shore"],
+["¿En qué año se firmó la Declaración de Independencia de Estados Unidos?|1776|1783|1789|1765","¿Qué batalla puso fin al poder de Napoleón en 1815?|Waterloo|Trafalgar|Austerlitz|Leipzig","¿Quién fue el presidente del Gobierno tras las elecciones de 1977?|Adolfo Suárez|Felipe González|Leopoldo Calvo-Sotelo|Carlos Arias Navarro","¿Qué imperio gobernó Constantinopla hasta 1453?|Bizantino|Otomano|Persa|Carolingio"],
+["¿Quién escribió «Ficciones»?|Jorge Luis Borges|Julio Cortázar|Octavio Paz|Pablo Neruda","¿Quién pintó «El jardín de las delicias»?|El Bosco|Brueghel|Durero|El Greco","¿Quién compuso «El lago de los cisnes»?|Chaikovski|Stravinski|Rajmáninov|Músorgski","¿Qué arquitecto diseñó la Sagrada Familia?|Antoni Gaudí|Santiago Calatrava|Lluís Domènech i Montaner|Josep Puig i Cadafalch"],
+["¿Cuál es el elemento más abundante del universo?|Hidrógeno|Helio|Oxígeno|Carbono","¿Cuál es el número atómico del carbono?|6|8|12|14","¿Quién descubrió la penicilina?|Alexander Fleming|Louis Pasteur|Robert Koch|Marie Curie","¿Cuál es el hueso más pequeño del cuerpo humano?|Estribo|Martillo|Yunque|Falange"],
+["¿En qué ciudad se celebraron los Juegos Olímpicos de 1992?|Barcelona|Seúl|Atlanta|Sídney","¿Cuántos jugadores tiene un equipo de rugby unión en el campo?|15|13|11|12","¿En qué deporte se consigue un «birdie»?|Golf|Tenis|Béisbol|Bádminton","¿Quién ganó el primer Mundial de fútbol, en 1930?|Uruguay|Brasil|Argentina|Italia"]
+];
+// Preguntas añadidas (actualidad 2026 comprobada en internet + cultura general)
+const QE2=[
+["¿Cuál es el país más grande del mundo por superficie?|Rusia|Canadá|China|Estados Unidos"],
+["¿Cómo se llama el ratón más famoso de Disney?|Mickey Mouse|Stuart Little|Ratatouille|Pinky"],
+["¿En qué país se construyó la Gran Muralla?|China|Japón|India|Mongolia"],
+["¿Qué instrumento tiene teclas blancas y negras?|Piano|Guitarra|Violín|Flauta"],
+["¿Cuántos planetas tiene el Sistema Solar?|8|7|9|10"],
+["¿Qué selección ganó el Mundial de fútbol de 2026?|España|Argentina|Francia|Inglaterra"]
+];
+const QM2=[
+["¿Cuál es la capital de Brasil?|Brasilia|Río de Janeiro|São Paulo|Salvador","¿En qué país está la ciudad de Petra?|Jordania|Egipto|Siria|Turquía"],
+["¿Qué película ganó el Óscar a mejor película en 2026?|Una batalla tras otra|Sinners|Hamnet|Marty Supreme","¿Qué país ganó Eurovisión 2026 en Viena?|Bulgaria|Israel|Rumanía|Austria"],
+["¿Qué civilización construyó Machu Picchu?|Inca|Maya|Azteca|Olmeca","¿En qué año llegó el ser humano a la Luna?|1969|1961|1972|1965"],
+["¿Quién escribió «El principito»?|Antoine de Saint-Exupéry|Julio Verne|Victor Hugo|Albert Camus","¿Quién compuso la Novena Sinfonía con el «Himno a la Alegría»?|Beethoven|Mozart|Brahms|Schubert"],
+["¿Cuántos corazones tiene un pulpo?|3|1|2|4","¿Qué metal es líquido a temperatura ambiente?|Mercurio|Plomo|Aluminio|Cobre"],
+["¿Quién marcó el gol de la final del Mundial de 2026?|Ferrán Torres|Lamine Yamal|Nico Williams|Rodri","¿Quién era el seleccionador de España en el Mundial de 2026?|Luis de la Fuente|Vicente del Bosque|Julen Lopetegui|Luis Enrique"]
+];
+const QD2=[
+["¿Cuál es el punto más bajo de la superficie terrestre emergida?|Mar Muerto|Valle de la Muerte|Lago Assal|Depresión de Qattara"],
+["¿Cuántos puntos logró Bulgaria al ganar Eurovisión 2026?|516|343|432|398","¿Quién ganó el Óscar a mejor director en 2026?|Paul Thomas Anderson|Ryan Coogler|Chloé Zhao|Joachim Trier"],
+["¿Qué tratado puso fin a la Primera Guerra Mundial con Alemania?|Tratado de Versalles|Tratado de Tordesillas|Paz de Westfalia|Tratado de Utrecht"],
+["¿Quién escribió «Pedro Páramo»?|Juan Rulfo|Carlos Fuentes|Octavio Paz|Mario Benedetti"],
+["¿Cómo se llama la capa más externa de la atmósfera terrestre?|Exosfera|Termosfera|Mesosfera|Estratosfera"],
+["¿Cuántos goles encajó España en todo el Mundial de 2026?|1|0|2|3","¿En qué estadio se jugó la final del Mundial de 2026?|MetLife Stadium|Estadio Azteca|SoFi Stadium|AT&T Stadium"]
+];
+const QL=[0,1,2].map(l=>C.map((_,c)=>l==0?E[c].map(i=>Q[c][i]).concat(QE2[c]):l==1?Q[c].filter((_,i)=>!E[c].includes(i)).concat(QM[c],QM2[c]):QD[c].concat(QD2[c])));
+// ===== Generador de preguntas (combinaciones prácticamente infinitas) =====
+// bank(categoría, plantilla, [fácil, medio, difícil] como "a=b;a=b", opciones)
+const G=[],pk=a=>a[Math.floor(Math.random()*a.length)],ri=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const bank=(c,t,l,o={})=>G.push({c,t,o,r:l.map(x=>x.split(";").map(y=>y.split("=")))});
+bank(0,"¿Cuál es la capital de {}?",["España=Madrid;Francia=París;Italia=Roma;Alemania=Berlín;Portugal=Lisboa;Reino Unido=Londres;Japón=Tokio;Rusia=Moscú;Grecia=Atenas;Argentina=Buenos Aires;México=Ciudad de México","Australia=Canberra;Canadá=Ottawa;Brasil=Brasilia;Turquía=Ankara;Suiza=Berna;Marruecos=Rabat;Perú=Lima;Colombia=Bogotá;Suecia=Estocolmo;Polonia=Varsovia;Austria=Viena;Bélgica=Bruselas;Irlanda=Dublín","Kazajistán=Astaná;Nigeria=Abuya;Myanmar=Naipyidó;Tanzania=Dodoma;Nueva Zelanda=Wellington;Vietnam=Hanói;Etiopía=Adís Abeba;Costa de Marfil=Yamusukro;Mongolia=Ulán Bator;Uzbekistán=Taskent;Ghana=Acra;Pakistán=Islamabad"],{rev:"¿De qué país es capital {}?"});
+bank(0,"¿En qué país se encuentra este monumento: {}?",["Torre Eiffel=Francia;Coliseo=Italia;Taj Mahal=India;Sagrada Familia=España;Big Ben=Reino Unido;Estatua de la Libertad=Estados Unidos;Gran Muralla=China;Cristo Redentor=Brasil","Machu Picchu=Perú;Chichén Itzá=México;Acrópolis=Grecia;Petra=Jordania;Torre de Pisa=Italia;Ópera de Sídney=Australia;Alhambra=España;Kremlin=Rusia","Angkor Wat=Camboya;Santa Sofía=Turquía;Burj Khalifa=Emiratos Árabes Unidos;Borobudur=Indonesia;Atomium=Bélgica;La Sirenita de Copenhague=Dinamarca;Torre CN=Canadá;Torres Petronas=Malasia"]);
+bank(1,"¿Quién dirigió la película «{}»?",["Titanic=James Cameron;Avatar=James Cameron;Tiburón=Steven Spielberg;E.T.=Steven Spielberg;Pulp Fiction=Quentin Tarantino;Gladiator=Ridley Scott;Origen=Christopher Nolan;Los otros=Alejandro Amenábar","El Padrino=Francis Ford Coppola;Psicosis=Alfred Hitchcock;El Resplandor=Stanley Kubrick;Volver=Pedro Almodóvar;El laberinto del fauno=Guillermo del Toro;La lista de Schindler=Steven Spielberg;Taxi Driver=Martin Scorsese;Alien=Ridley Scott","Blade Runner=Ridley Scott;2001: Una odisea del espacio=Stanley Kubrick;Apocalypse Now=Francis Ford Coppola;Cinema Paradiso=Giuseppe Tornatore;Stalker=Andréi Tarkovski;Ciudadano Kane=Orson Welles;Los siete samuráis=Akira Kurosawa;Vértigo=Alfred Hitchcock;Mar adentro=Alejandro Amenábar"]);
+bank(1,"¿Quién canta «{}»?",["Thriller=Michael Jackson;Hello=Adele;Waka Waka=Shakira;Despacito=Luis Fonsi;Bohemian Rhapsody=Queen;Imagine=John Lennon;Livin la vida loca=Ricky Martin;Like a Prayer=Madonna","Hotel California=Eagles;Smells Like Teen Spirit=Nirvana;Purple Rain=Prince;Wonderwall=Oasis;Corazón partío=Alejandro Sanz;Mediterráneo=Joan Manuel Serrat;Shake It Off=Taylor Swift","Creep=Radiohead;Africa=Toto;Losing My Religion=R.E.M.;Ojalá=Silvio Rodríguez;Wish You Were Here=Pink Floyd;Stairway to Heaven=Led Zeppelin;Gracias a la vida=Violeta Parra;Sweet Child o Mine=Guns N Roses"]);
+bank(2,"¿En qué año sucedió este hecho: {}?",["la llegada de Colón a América=1492;la caída del Muro de Berlín=1989;el inicio de la Primera Guerra Mundial=1914;el inicio de la Segunda Guerra Mundial=1939;la llegada del ser humano a la Luna=1969","la Revolución Francesa=1789;la independencia de Estados Unidos=1776;la muerte de Franco=1975;la Constitución española=1978;la caída de Constantinopla=1453;la Revolución rusa=1917;el fin de la Segunda Guerra Mundial=1945;los atentados del 11 de septiembre=2001","la batalla de Waterloo=1815;la batalla de Trafalgar=1805;la batalla de Lepanto=1571;la Armada Invencible=1588;el Tratado de Tordesillas=1494;la caída del Imperio romano de Occidente=476;el descubrimiento de la penicilina=1928;la proclamación de la Segunda República española=1931;el inicio de la Guerra de Independencia española=1808"],{num:1});
+bank(2,"¿En qué país nació {}?",["Albert Einstein=Alemania;Leonardo da Vinci=Italia;Pablo Picasso=España;Napoleón Bonaparte=Francia;Mahatma Gandhi=India;Nelson Mandela=Sudáfrica","Wolfgang Amadeus Mozart=Austria;Frida Kahlo=México;Marie Curie=Polonia;Che Guevara=Argentina;Charles Chaplin=Reino Unido;Cristóbal Colón=Italia;Pelé=Brasil;Julio Verne=Francia","Ludwig van Beethoven=Alemania;Pablo Neruda=Chile;Simón Bolívar=Venezuela;Edvard Munch=Noruega;Hans Christian Andersen=Dinamarca;Frédéric Chopin=Polonia;Fiódor Dostoyevski=Rusia;Gabriel García Márquez=Colombia"]);
+bank(3,"¿Quién escribió «{}»?",["Don Quijote de la Mancha=Miguel de Cervantes;Romeo y Julieta=William Shakespeare;Cien años de soledad=Gabriel García Márquez;Harry Potter y la piedra filosofal=J. K. Rowling;Hamlet=William Shakespeare;El principito=Antoine de Saint-Exupéry","1984=George Orwell;Crimen y castigo=Fiódor Dostoyevski;Orgullo y prejuicio=Jane Austen;Los miserables=Victor Hugo;Platero y yo=Juan Ramón Jiménez;Bodas de sangre=Federico García Lorca;Rayuela=Julio Cortázar;La casa de los espíritus=Isabel Allende","El Aleph=Jorge Luis Borges;Pedro Páramo=Juan Rulfo;La Regenta=Leopoldo Alas Clarín;Nada=Carmen Laforet;Ulises=James Joyce;El extranjero=Albert Camus;Niebla=Miguel de Unamuno;La colmena=Camilo José Cela;Fahrenheit 451=Ray Bradbury"]);
+bank(3,"¿Quién pintó «{}»?",["La Gioconda=Leonardo da Vinci;Guernica=Pablo Picasso;La noche estrellada=Vincent van Gogh;El grito=Edvard Munch;Las Meninas=Diego Velázquez","La persistencia de la memoria=Salvador Dalí;El beso=Gustav Klimt;La creación de Adán=Miguel Ángel;Los fusilamientos del tres de mayo=Francisco de Goya;Impresión, sol naciente=Claude Monet;La joven de la perla=Johannes Vermeer","El jardín de las delicias=El Bosco;Las dos Fridas=Frida Kahlo;La ronda de noche=Rembrandt;El caballero de la mano en el pecho=El Greco;El nacimiento de Venus=Sandro Botticelli;La libertad guiando al pueblo=Eugène Delacroix;Saturno devorando a su hijo=Francisco de Goya"]);
+bank(4,"¿Cuál es el símbolo químico de este elemento: {}?",["Hidrógeno=H;Oxígeno=O;Carbono=C;Nitrógeno=N;Helio=He;Oro=Au;Hierro=Fe;Sodio=Na","Plata=Ag;Potasio=K;Calcio=Ca;Cobre=Cu;Plomo=Pb;Mercurio=Hg;Estaño=Sn;Azufre=S;Cloro=Cl;Neón=Ne","Wolframio=W;Antimonio=Sb;Cesio=Cs;Platino=Pt;Cadmio=Cd;Bario=Ba;Uranio=U;Zinc=Zn;Níquel=Ni;Cromo=Cr"]);
+bank(4,"¿A qué grupo pertenece este animal: {}?",["el delfín=mamífero;la ballena=mamífero;el pingüino=ave;el cocodrilo=reptil;la rana=anfibio;el tiburón=pez","el murciélago=mamífero;la tortuga=reptil;la salamandra=anfibio;el avestruz=ave;el caballito de mar=pez;la serpiente=reptil","el ornitorrinco=mamífero;el kiwi=ave;el tritón=anfibio;la anguila=pez;el dragón de Komodo=reptil;el pangolín=mamífero"]);
+bank(5,"¿Qué país acogió los Juegos Olímpicos de verano de {}?",["2024=Francia;2016=Brasil;2008=China;1992=España;1996=Estados Unidos","2012=Reino Unido;2004=Grecia;2000=Australia;1988=Corea del Sur;1984=Estados Unidos","1980=Unión Soviética;1976=Canadá;1972=Alemania;1968=México;1964=Japón;1960=Italia;1956=Australia;1952=Finlandia"]);
+bank(5,"¿Qué selección ganó el Mundial de fútbol de {}?",["2010=España;2022=Argentina;2018=Francia;2026=España;2006=Italia","2014=Alemania;2002=Brasil;1998=Francia;1994=Brasil;1986=Argentina;1982=Italia","1978=Argentina;1970=Brasil;1966=Inglaterra;1962=Brasil;1958=Brasil;1950=Uruguay;1938=Italia;1930=Uruguay"]);
+bank(5,"¿En qué deporte destaca {}?",["Usain Bolt=Atletismo;Rafa Nadal=Tenis;Lionel Messi=Fútbol;Michael Jordan=Baloncesto;Tiger Woods=Golf;Michael Phelps=Natación","Simone Biles=Gimnasia;Fernando Alonso=Automovilismo;Marc Márquez=Motociclismo;Miguel Indurain=Ciclismo;Pau Gasol=Baloncesto;Carolina Marín=Bádminton","Eliud Kipchoge=Atletismo;Ruth Beitia=Atletismo;Javier Gómez Noya=Triatlón;Ona Carbonell=Natación artística;Saúl Craviotto=Piragüismo;Lydia Valentín=Halterofilia;Mireia Belmonte=Natación"]);
+function near(v,o){const z=new Set();for(const d of sh(o)){if(v+d>0&&d)z.add(v+d);if(z.size==3)break}return[...z]}
+function gen(cat){
+  const gs=G.filter(g=>g.c==cat),n=gs.length+(cat==4?2:0),k=ri(0,n-1);
+  if(k>=gs.length){ // cálculo: siempre numeros nuevos
+    let q,v,o;
+    if(k==gs.length){const[lo,hi]=[[2,9],[6,15],[11,25]][LV],a=ri(lo,hi),b=ri(lo,hi);q="¿Cuánto es "+a+" × "+b+"?";v=a*b;o=[1,-1,2,-2,10,-10,a,-a,b,-b]}
+    else{const[lo,hi]=[[2,12],[11,20],[15,30]][LV],a=ri(lo,hi);q="¿Cuál es la raíz cuadrada de "+a*a+"?";v=a;o=[1,-1,2,-2,3,-3,10,-10]}
+    return[q,v,...near(v,o)].join("|");
+  }
+  const g=gs[k],r=pk(g.r[LV]);let a=r[0],b=r[1],q=g.t,c=1;
+  if(g.o.rev&&Math.random()<.5){a=r[1];b=r[0];q=g.o.rev;c=0}
+  q=q.replace("{}",a);
+  const d=g.o.num?near(+b,[-50,-25,-10,-5,-3,-2,2,3,5,10,25,50]):sh([...new Set(g.r.flat().map(x=>x[c]))].filter(x=>x!=b)).slice(0,3);
+  return[q,b,...d].join("|");
+}
+let usedQ=new Set();
 const $=id=>document.getElementById(id);
 const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const sh=a=>a.map(x=>[Math.random(),x]).sort((p,q)=>p[0]-q[0]).map(x=>x[1]);
-let N=2,P=[],cur=0,pool=[],cat=0,busy=false,audio=true,qSpeech="";
+let LV=0,N=2,P=[],cur=0,pool=[],cat=0,busy=false,audio=true,qSpeech="";
 const TTS=window.speechSynthesis;
 function say(t){
   if(!audio||!TTS||!t)return;
@@ -151,10 +232,12 @@ $("mic").onclick=()=>{
 $("bar").innerHTML=C.map(c=>`<i style="background:${c[1]}"></i>`).join("");
 function drawSetup(){
   $("cnt").innerHTML=[2,3,4].map(n=>`<button class="sec ${n==N?"on":""}" data-n="${n}">${n}</button>`).join("");
+  $("lvl").innerHTML=LVN.map((n,i)=>`<button class="sec ${i==LV?"on":""}" data-l="${i}">${n}</button>`).join("");
   const old=[...document.querySelectorAll("#names input")].map(i=>i.value);
   $("names").innerHTML=Array.from({length:N},(_,i)=>`<input maxlength="14" placeholder="Nombre del jugador ${i+1}" value="${esc(old[i]||"")}" aria-label="Nombre del jugador ${i+1}">`).join("");
 }
 $("cnt").onclick=e=>{const b=e.target.closest("button");if(b){N=+b.dataset.n;drawSetup()}};
+$("lvl").onclick=e=>{const b=e.target.closest("button");if(b){LV=+b.dataset.l;drawSetup()}};
 drawSetup();
 
 function pie(w){
@@ -172,7 +255,7 @@ $("go").onclick=()=>{
   const v=[...document.querySelectorAll("#names input")].map(i=>i.value.trim());
   unlock();
   if(v.some(x=>!x)){$("err").textContent="Escribe el nombre de todos los jugadores.";return}
-  P=v.map(n=>({name:n,w:Array(6).fill(false)}));cur=0;pool=C.map(()=>[]);
+  P=v.map(n=>({name:n,w:Array(6).fill(false)}));cur=0;pool=C.map(()=>[]);usedQ=new Set();
   $("err").textContent="";$("setup").classList.add("hide");$("game").classList.remove("hide");
   startTurn();
 };
@@ -191,10 +274,12 @@ $("roll").onclick=()=>{
   const iv=setInterval(()=>{d.style.background=C[Math.floor(Math.random()*6)][1];if(++t>11){clearInterval(iv);d.style.background=C[cat][1];d.textContent="✔";setTimeout(ask,600)}},80);
 };
 function ask(){
-  if(!pool[cat].length)pool[cat]=sh(Q[cat]);
-  const f=pool[cat].pop().split("|"),ok=f[1];
+  let raw=null;
+  if(Math.random()<.8)for(let i=0;i<10&&!raw;i++){const x=gen(cat);if(!usedQ.has(x.split("|")[0]))raw=x}
+  if(raw)usedQ.add(raw.split("|")[0]);else{if(!pool[cat].length)pool[cat]=sh(QL[LV][cat]);raw=pool[cat].pop()}
+  const f=raw.split("|"),ok=f[1];
   $("rollBox").classList.add("hide");$("qBox").classList.remove("hide");
-  const l=$("catL");l.textContent=C[cat][0];l.style.background=C[cat][1];
+  const l=$("catL");l.textContent=C[cat][0]+" · "+LVN[LV];l.style.background=C[cat][1];
   $("qt").textContent=P[cur].name+": "+f[0];
   $("res").classList.add("hide");$("next").classList.add("hide");
   $("heard").textContent="";$("mic").disabled=false;
