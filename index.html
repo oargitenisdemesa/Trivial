@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Trivial</title>
+<style>
+:root{--bg:#10142b;--card:#1a1f40;--line:#2c3263;--tx:#f5f6ff;--mut:#9ba2d0;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*,*:before,*:after{box-sizing:inherit}
+html{background:var(--bg);scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:Georgia,"Palatino Linotype",serif;min-height:100vh}
+main{max-width:640px;margin:0 auto;padding:18px 14px 40px}
+h1{font-size:2.2rem;margin:.3em 0 .1em;text-align:center;letter-spacing:.02em}
+.sub{text-align:center;color:var(--mut);margin:0 0 20px}
+.bar{display:flex;height:8px;border-radius:4px;overflow:hidden;margin:0 auto 22px;max-width:260px}.bar i{flex:1}
+button{font:inherit;cursor:pointer;border:0;border-radius:12px;padding:13px 18px;background:#f5c542;color:#1b1630;font-weight:700;font-size:1.05rem}
+button:focus-visible,input:focus-visible{outline:3px solid #fff;outline-offset:2px}
+button.sec{background:var(--card);color:var(--tx);border:1px solid var(--line)}
+.cnt{display:flex;gap:8px;justify-content:center;margin-bottom:16px}
+.cnt button{width:54px;padding:10px}.cnt button.on{background:#f5c542;color:#1b1630}
+input{width:100%;font:inherit;font-size:1.05rem;padding:13px;margin-bottom:10px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--tx)}
+.err{color:#ff8a8a;min-height:1.3em;text-align:center;margin:4px 0 10px}
+.pl{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+.p{display:flex;align-items:center;gap:10px;padding:10px;border-radius:14px;background:var(--card);border:2px solid var(--line);min-width:0}
+.p.act{border-color:#f5c542;box-shadow:0 0 0 3px rgba(245,197,66,.25)}
+.p b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.p small{color:var(--mut)}
+.p div{min-width:0}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;text-align:center}
+.turn{font-size:1.3rem;margin:0 0 14px}
+.die{width:96px;height:96px;border-radius:22px;margin:0 auto 16px;background:#444a7a;display:grid;place-items:center;font-size:2.4rem;transition:background .08s;border:3px solid rgba(255,255,255,.35)}
+.cat{display:inline-block;padding:5px 14px;border-radius:99px;font-weight:700;color:#14142a;margin-bottom:12px}
+.q{font-size:1.25rem;line-height:1.4;margin:0 0 16px}
+.opts{display:grid;gap:9px}
+.opts button{background:var(--bg);color:var(--tx);border:2px solid var(--line);text-align:left;font-weight:400}
+.opts button.ok{background:#1f7a46;border-color:#4ade80}.opts button.ko{background:#8a2b38;border-color:#ff8a8a}
+.res{margin:14px 0 4px;font-size:1.1rem}
+.hide{display:none!important}
+.tools{display:flex;gap:8px;justify-content:center;margin-bottom:14px}.tools button{padding:9px 14px;font-size:.95rem}
+#win{position:fixed;inset:0;z-index:5;background:rgba(10,12,30,.88);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px}
+#win .c{font-size:clamp(1.6rem,7vw,2.6rem);color:#f5c542;letter-spacing:.06em;margin:0}
+#win .n{font-size:clamp(3rem,18vw,7rem);font-weight:700;line-height:1.05;margin:.15em 0 .3em;word-break:break-word;animation:pop .7s cubic-bezier(.2,1.6,.4,1)}
+@keyframes pop{from{transform:scale(.2);opacity:0}}
+#fx{position:fixed;inset:0;z-index:6;pointer-events:none}
+@media(prefers-reduced-motion:reduce){#win .n{animation:none}}
+</style></head><body>
+<main>
+<h1>Trivial</h1>
+<div class="bar" id="bar"></div>
+<div class="tools"><button class="sec" id="snd" aria-pressed="true">🔊 Audio: sí</button></div>
+
+<section id="setup">
+<p class="sub">¿Cuántos jugáis?</p>
+<div class="cnt" id="cnt"></div>
+<div id="names"></div>
+<div class="err" id="err"></div>
+<button id="go" style="width:100%">Empezar partida</button>
+</section>
+
+<section id="game" class="hide">
+<div class="pl" id="pl"></div>
+<div class="panel">
+<div id="rollBox">
+<p class="turn" id="turn"></p>
+<div class="die" id="die">?</div>
+<button id="roll">Tirar el dado</button>
+</div>
+<div id="qBox" class="hide">
+<span class="cat" id="catL"></span>
+<p class="q" id="qt"></p>
+<div class="tools"><button class="sec" id="rep">🔊 Repetir</button><button id="mic">🎤 Responder por voz</button></div>
+<p class="sub" id="heard" style="min-height:1.4em;margin:0 0 12px"></p>
+<div class="opts" id="opts"></div>
+<p class="res hide" id="res"></p>
+<button id="next" class="hide">Siguiente jugador</button>
+</div>
+</div>
+</section>
+</main>
+
+<div id="win" class="hide">
+<p class="c">🏆 CAMPEÓN/A 🏆</p>
+<p class="n" id="wn"></p>
+<button id="again">Jugar de nuevo</button>
+</div>
+<canvas id="fx"></canvas>
+
+<script>
+const C=[["Geografía","#3b82f6"],["Entretenimiento","#ec4899"],["Historia","#facc15"],["Arte y Literatura","#a16207"],["Ciencias y Naturaleza","#22c55e"],["Deportes","#f97316"]];
+// pregunta|correcta|falsa|falsa|falsa
+const Q=[
+["¿Capital de Australia?|Canberra|Sídney|Melbourne|Perth","¿Río más largo de España?|Tajo|Ebro|Duero|Guadalquivir","¿Qué país tiene forma de bota?|Italia|Grecia|Portugal|Chile","¿En qué continente está Egipto?|África|Asia|Europa|Oceanía","¿Cuál es el mayor desierto cálido del mundo?|Sahara|Gobi|Kalahari|Atacama","¿Capital de Canadá?|Ottawa|Toronto|Vancouver|Montreal","¿Cuál es la montaña más alta del mundo?|Everest|K2|Kilimanjaro|Mont Blanc","¿Qué océano baña la costa este de Estados Unidos?|Atlántico|Pacífico|Índico|Ártico"],
+["¿Quién dirigió «Titanic»?|James Cameron|Steven Spielberg|Ridley Scott|Christopher Nolan","¿Cómo se llama el joven mago de Hogwarts?|Harry Potter|Merlín|Gandalf|Percy Jackson","¿Qué grupo cantaba «Bohemian Rhapsody»?|Queen|The Beatles|ABBA|Led Zeppelin","¿Cómo se llama el fontanero de Nintendo?|Mario|Sonic|Link|Pac-Man","¿Qué actor interpretó a Jack Sparrow?|Johnny Depp|Brad Pitt|Orlando Bloom|Tom Cruise","¿En qué película aparece Simba?|El Rey León|Bambi|Tarzán|Aladdín","¿Quién es conocida como la Reina del Pop?|Madonna|Shakira|Rihanna|Adele","¿Qué robot de Pixar se dedica a limpiar la Tierra?|WALL·E|R2-D2|Bumblebee|Baymax"],
+["¿En qué año llegó Colón a América?|1492|1453|1521|1588","¿Qué civilización construyó las pirámides de Guiza?|Egipcia|Maya|Romana|Azteca","¿En qué año cayó el Muro de Berlín?|1989|1979|1991|1961","¿Quién fue el primer emperador romano?|Augusto|Julio César|Nerón|Trajano","¿En qué año empezó la Primera Guerra Mundial?|1914|1939|1905|1918","¿Qué reina financió el viaje de Colón?|Isabel la Católica|Juana la Loca|Isabel II|Leonor de Aquitania","¿Quién fue el Libertador de Venezuela?|Simón Bolívar|José de San Martín|Miguel Hidalgo|Antonio José de Sucre","¿En qué siglo se difundió la imprenta de Gutenberg?|XV|XII|XVII|XIX"],
+["¿Quién escribió «Don Quijote de la Mancha»?|Cervantes|Lope de Vega|Quevedo|Góngora","¿Quién pintó «La Gioconda»?|Leonardo da Vinci|Miguel Ángel|Rafael|Botticelli","¿Quién pintó el «Guernica»?|Pablo Picasso|Salvador Dalí|Goya|Velázquez","¿Quién escribió «Cien años de soledad»?|Gabriel García Márquez|Mario Vargas Llosa|Jorge Luis Borges|Julio Cortázar","¿Quién compuso «Las cuatro estaciones»?|Vivaldi|Mozart|Bach|Beethoven","¿Quién escribió «Romeo y Julieta»?|Shakespeare|Dickens|Molière|Dante","¿Qué pintor se cortó parte de una oreja?|Van Gogh|Monet|Rembrandt|Gauguin","¿En qué museo está «Las Meninas»?|Museo del Prado|Museo Reina Sofía|Louvre|Museo Thyssen"],
+["¿Cuál es el símbolo químico del oro?|Au|Ag|Or|Go","¿Cuál es el planeta más grande del Sistema Solar?|Júpiter|Saturno|Neptuno|Tierra","¿Cuántos huesos tiene un cuerpo humano adulto?|206|180|250|300","¿Qué gas absorben las plantas en la fotosíntesis?|Dióxido de carbono|Oxígeno|Nitrógeno|Hidrógeno","¿Cuál es el animal terrestre más rápido?|Guepardo|León|Caballo|Leopardo","¿Cuál es el órgano más grande del cuerpo humano?|La piel|El hígado|El pulmón|El intestino","¿A cuántos grados Celsius hierve el agua a nivel del mar?|100|90|120|80","¿Qué planeta se conoce como el planeta rojo?|Marte|Venus|Mercurio|Urano"],
+["¿Cada cuántos años se celebran los Juegos Olímpicos de verano?|4|2|3|5","¿Cuántos jugadores de un equipo de fútbol hay en el campo?|11|9|10|12","¿En qué deporte se disputa Wimbledon?|Tenis|Golf|Críquet|Béisbol","¿Qué selección ganó el Mundial de fútbol de 2010?|España|Alemania|Brasil|Países Bajos","¿Cuántos puntos vale un triple en baloncesto?|3|2|4|5","¿En qué deporte destacó Rafa Nadal?|Tenis|Golf|Pádel|Ciclismo","¿Cuánto mide una maratón?|42,195 km|21 km|50 km|30 km","¿Qué deporte practica Usain Bolt?|Atletismo|Natación|Ciclismo|Boxeo"]
+];
+const $=id=>document.getElementById(id);
+const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const sh=a=>a.map(x=>[Math.random(),x]).sort((p,q)=>p[0]-q[0]).map(x=>x[1]);
+let N=2,P=[],cur=0,pool=[],cat=0,busy=false,audio=true,qSpeech="";
+const TTS=window.speechSynthesis;
+function say(t){
+  if(!audio||!TTS||!t)return;
+  TTS.cancel();
+  const u=new SpeechSynthesisUtterance(t);u.lang="es-ES";u.rate=.95;
+  const v=TTS.getVoices().find(v=>v.lang&&v.lang.toLowerCase().startsWith("es"));if(v)u.voice=v;
+  TTS.speak(u);
+}
+function unlock(){if(TTS){TTS.speak(new SpeechSynthesisUtterance(""))}}
+$("snd").onclick=()=>{audio=!audio;$("snd").textContent=audio?"🔊 Audio: sí":"🔇 Audio: no";$("snd").setAttribute("aria-pressed",audio);if(!audio&&TTS)TTS.cancel();else say("Audio activado")};
+$("rep").onclick=()=>say(qSpeech);
+
+// Respuesta por voz
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+if(!SR)$("mic").classList.add("hide");
+let rec=null;
+const nm=s=>s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9 ]/g," ").replace(/\s+/g," ").trim();
+const NUM={uno:1,una:1,dos:2,tres:3,cuatro:4,cinco:5,seis:6,siete:7,ocho:8,nueve:9,diez:10,once:11,doce:12};
+const LET={a:0,b:1,be:1,c:2,ce:2,se:2,d:3,de:3};
+function pick(alts){
+  const bs=[...document.querySelectorAll("#opts button")];
+  for(const a of alts){
+    const tk=nm(a).split(" ").map(w=>NUM[w]??w);
+    const sc=bs.map(b=>{
+      const w=nm(b.dataset.t).split(" ").filter(x=>x.length>1||/\d/.test(x));
+      return w.length?w.filter(x=>tk.includes(x)).length/w.length:0;
+    });
+    const mx=Math.max(...sc);
+    if(mx>=.6&&sc.filter(x=>x==mx).length==1)return sc.indexOf(mx);
+    const t=tk.filter(w=>!["opcion","la","letra","respuesta","es"].includes(w));
+    if(t.length==1&&LET[t[0]]!==undefined)return LET[t[0]];
+  }
+  return -1;
+}
+$("mic").onclick=()=>{
+  if(TTS)TTS.cancel();
+  if(rec)rec.abort();
+  const h=$("heard");h.textContent="🎙️ Escuchando…";
+  rec=new SR();rec.lang="es-ES";rec.maxAlternatives=4;rec.interimResults=false;
+  rec.onresult=e=>{
+    const alts=Array.from(e.results[0]).map(x=>x.transcript);
+    h.textContent="Has dicho: "+alts[0];
+    const i=pick(alts);
+    if(i<0){h.textContent+=" (no te he entendido, inténtalo otra vez)";say("No te he entendido. Inténtalo otra vez.");return}
+    document.querySelectorAll("#opts button")[i].click();
+  };
+  rec.onerror=e=>{h.textContent=e.error=="not-allowed"||e.error=="service-not-allowed"?"Permite el micrófono para responder por voz.":"No te he oído. Pulsa el micrófono e inténtalo otra vez."};
+  rec.onend=()=>{rec=null};
+  rec.start();
+};
+
+$("bar").innerHTML=C.map(c=>`<i style="background:${c[1]}"></i>`).join("");
+function drawSetup(){
+  $("cnt").innerHTML=[2,3,4].map(n=>`<button class="sec ${n==N?"on":""}" data-n="${n}">${n}</button>`).join("");
+  const old=[...document.querySelectorAll("#names input")].map(i=>i.value);
+  $("names").innerHTML=Array.from({length:N},(_,i)=>`<input maxlength="14" placeholder="Nombre del jugador ${i+1}" value="${esc(old[i]||"")}" aria-label="Nombre del jugador ${i+1}">`).join("");
+}
+$("cnt").onclick=e=>{const b=e.target.closest("button");if(b){N=+b.dataset.n;drawSetup()}};
+drawSetup();
+
+function pie(w){
+  let s='<svg viewBox="-50 -50 100 100" width="62" height="62" aria-hidden="true" style="flex:none">';
+  for(let i=0;i<6;i++){
+    const a=i*Math.PI/3-Math.PI/2,b=a+Math.PI/3,r=46;
+    s+=`<path d="M0 0L${r*Math.cos(a)} ${r*Math.sin(a)}A${r} ${r} 0 0 1 ${r*Math.cos(b)} ${r*Math.sin(b)}Z" fill="${w[i]?C[i][1]:"#2c3263"}" stroke="#10142b" stroke-width="2.5"/>`;
+  }
+  return s+"</svg>";
+}
+function drawPlayers(){
+  $("pl").innerHTML=P.map((p,i)=>`<div class="p ${i==cur?"act":""}">${pie(p.w)}<div><b>${esc(p.name)}</b><small>${p.w.filter(Boolean).length} de 6 quesitos</small></div></div>`).join("");
+}
+$("go").onclick=()=>{
+  const v=[...document.querySelectorAll("#names input")].map(i=>i.value.trim());
+  unlock();
+  if(v.some(x=>!x)){$("err").textContent="Escribe el nombre de todos los jugadores.";return}
+  P=v.map(n=>({name:n,w:Array(6).fill(false)}));cur=0;pool=C.map(()=>[]);
+  $("err").textContent="";$("setup").classList.add("hide");$("game").classList.remove("hide");
+  startTurn();
+};
+function startTurn(){
+  busy=false;drawPlayers();
+  $("turn").textContent="Turno de "+P[cur].name;
+  $("die").style.background="#444a7a";$("die").textContent="?";
+  $("rollBox").classList.remove("hide");$("qBox").classList.add("hide");
+  say("Turno de "+P[cur].name+". Tira el dado.");
+}
+$("roll").onclick=()=>{
+  if(busy)return;busy=true;unlock();
+  const miss=C.map((_,i)=>i).filter(i=>!P[cur].w[i]);
+  cat=miss[Math.floor(Math.random()*miss.length)];
+  const d=$("die");d.textContent="";let t=0;
+  const iv=setInterval(()=>{d.style.background=C[Math.floor(Math.random()*6)][1];if(++t>11){clearInterval(iv);d.style.background=C[cat][1];d.textContent="✔";setTimeout(ask,600)}},80);
+};
+function ask(){
+  if(!pool[cat].length)pool[cat]=sh(Q[cat]);
+  const f=pool[cat].pop().split("|"),ok=f[1];
+  $("rollBox").classList.add("hide");$("qBox").classList.remove("hide");
+  const l=$("catL");l.textContent=C[cat][0];l.style.background=C[cat][1];
+  $("qt").textContent=P[cur].name+": "+f[0];
+  $("res").classList.add("hide");$("next").classList.add("hide");
+  $("heard").textContent="";$("mic").disabled=false;
+  const o=$("opts");o.innerHTML="";
+  const op=sh(f.slice(1));
+  op.forEach((t,i)=>{
+    const b=document.createElement("button");b.dataset.t=t;b.textContent="ABCD"[i]+". "+t;
+    b.onclick=()=>answer(b,t==ok,ok);o.appendChild(b);
+  });
+  qSpeech=P[cur].name+". Categoría "+C[cat][0]+". "+f[0]+" "+op.map((t,i)=>"Opción "+"ABCD"[i]+": "+t+".").join(" ");
+  say(qSpeech);
+}
+function answer(btn,good,ok){
+  const bs=[...document.querySelectorAll("#opts button")];
+  bs.forEach(b=>{b.disabled=true;if(b.dataset.t==ok)b.classList.add("ok")});
+  if(!good)btn.classList.add("ko");
+  $("mic").disabled=true;if(rec)rec.abort();
+  const r=$("res");r.classList.remove("hide");
+  if(good){
+    const nw=!P[cur].w[cat];P[cur].w[cat]=true;drawPlayers();
+    r.textContent="¡Correcto! Quesito de "+C[cat][0]+" conseguido.";
+    if(P[cur].w.every(Boolean)){say(r.textContent);setTimeout(win,1800);return}
+  }else r.textContent="Fallaste. La respuesta era: "+ok;
+  say(good?r.textContent:"Fallaste. La respuesta correcta era: "+ok);
+  const n=$("next");n.textContent="Turno de "+P[(cur+1)%P.length].name;n.classList.remove("hide");
+}
+$("next").onclick=()=>{cur=(cur+1)%P.length;startTurn()};
+
+// Victoria y fuegos artificiales
+const cv=$("fx"),cx=cv.getContext("2d");let ps=[],fx=false,lb=0;
+function fit(){cv.width=innerWidth;cv.height=innerHeight}
+addEventListener("resize",fit);fit();
+function burst(){
+  const x=Math.random()*cv.width,y=Math.random()*cv.height*.6+40,h=Math.random()*360;
+  for(let i=0;i<70;i++){const a=Math.random()*6.283,s=Math.random()*5+1.5;ps.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,l:1,h})}
+}
+function loop(t){
+  if(!fx)return;
+  cx.globalCompositeOperation="destination-out";cx.fillStyle="rgba(0,0,0,.2)";cx.fillRect(0,0,cv.width,cv.height);
+  cx.globalCompositeOperation="lighter";
+  if(t-lb>450){burst();lb=t}
+  ps=ps.filter(p=>p.l>0);
+  for(const p of ps){p.x+=p.vx;p.y+=p.vy;p.vy+=.06;p.vx*=.99;p.l-=.012;cx.fillStyle=`hsla(${p.h},100%,60%,${p.l})`;cx.beginPath();cx.arc(p.x,p.y,2.2,0,6.283);cx.fill()}
+  requestAnimationFrame(loop);
+}
+function win(){
+  $("wn").textContent=P[cur].name;$("win").classList.remove("hide");
+  fx=true;ps=[];requestAnimationFrame(loop);
+  say("¡Enhorabuena, "+P[cur].name+"! Eres el campeón o la campeona.");
+}
+$("again").onclick=()=>{
+  fx=false;cx.clearRect(0,0,cv.width,cv.height);$("win").classList.add("hide");
+  $("game").classList.add("hide");$("setup").classList.remove("hide");
+};
+</script>
+</body></html>
