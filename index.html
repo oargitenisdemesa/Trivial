@@ -159,19 +159,27 @@ bank(4,"¿A qué grupo pertenece este animal: {}?",["el delfín=mamífero;la bal
 bank(5,"¿Qué país acogió los Juegos Olímpicos de verano de {}?",["2024=Francia;2016=Brasil;2008=China;1992=España;1996=Estados Unidos","2012=Reino Unido;2004=Grecia;2000=Australia;1988=Corea del Sur;1984=Estados Unidos","1980=Unión Soviética;1976=Canadá;1972=Alemania;1968=México;1964=Japón;1960=Italia;1956=Australia;1952=Finlandia"]);
 bank(5,"¿Qué selección ganó el Mundial de fútbol de {}?",["2010=España;2022=Argentina;2018=Francia;2026=España;2006=Italia","2014=Alemania;2002=Brasil;1998=Francia;1994=Brasil;1986=Argentina;1982=Italia","1978=Argentina;1970=Brasil;1966=Inglaterra;1962=Brasil;1958=Brasil;1950=Uruguay;1938=Italia;1930=Uruguay"]);
 bank(5,"¿En qué deporte destaca {}?",["Usain Bolt=Atletismo;Rafa Nadal=Tenis;Lionel Messi=Fútbol;Michael Jordan=Baloncesto;Tiger Woods=Golf;Michael Phelps=Natación","Simone Biles=Gimnasia;Fernando Alonso=Automovilismo;Marc Márquez=Motociclismo;Miguel Indurain=Ciclismo;Pau Gasol=Baloncesto;Carolina Marín=Bádminton","Eliud Kipchoge=Atletismo;Ruth Beitia=Atletismo;Javier Gómez Noya=Triatlón;Ona Carbonell=Natación artística;Saúl Craviotto=Piragüismo;Lydia Valentín=Halterofilia;Mireia Belmonte=Natación"]);
-function near(v,o){const z=new Set();for(const d of sh(o)){if(v+d>0&&d)z.add(v+d);if(z.size==3)break}return[...z]}
+function near(v,o){const z=new Set();for(const d of sh(o).concat(sh([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]))){if(v+d>0&&d)z.add(v+d);if(z.size==3)break}return[...z]}
 function gen(cat){
   const gs=G.filter(g=>g.c==cat),n=gs.length+(cat==4?2:0),k=ri(0,n-1);
   if(k>=gs.length){ // cálculo: siempre numeros nuevos
     let q,v,o;
-    if(k==gs.length){const[lo,hi]=[[2,9],[6,15],[11,25]][LV],a=ri(lo,hi),b=ri(lo,hi);q="¿Cuánto es "+a+" × "+b+"?";v=a*b;o=[1,-1,2,-2,10,-10,a,-a,b,-b]}
-    else{const[lo,hi]=[[2,12],[11,20],[15,30]][LV],a=ri(lo,hi);q="¿Cuál es la raíz cuadrada de "+a*a+"?";v=a;o=[1,-1,2,-2,3,-3,10,-10]}
+    if(k==gs.length){const[lo,hi]=[[2,9],[6,15],[11,25]][LV],a=ri(lo,hi),b=ri(lo,hi);q="¿Cuánto es "+a+" × "+b+"?";v=a*b;o=[[a,-a,b,-b,10,-10],[1,-1,2,-2,10,-10,a,-a],[1,-1,2,-2,3,-3]][LV]}
+    else{const[lo,hi]=[[2,12],[11,20],[15,30]][LV],a=ri(lo,hi);q="¿Cuál es la raíz cuadrada de "+a*a+"?";v=a;o=[[3,-3,5,-5,10,-10,4,-4],[1,-1,2,-2,3,-3],[1,-1,2,-2]][LV]}
     return[q,v,...near(v,o)].join("|");
   }
   const g=gs[k],r=pk(g.r[LV]);let a=r[0],b=r[1],q=g.t,c=1;
   if(g.o.rev&&Math.random()<.5){a=r[1];b=r[0];q=g.o.rev;c=0}
   q=q.replace("{}",a);
-  const d=g.o.num?near(+b,g.o.offs||[-50,-25,-10,-5,-3,-2,2,3,5,10,25,50]):sh([...new Set(g.r.flat().map(x=>x[c]))].filter(x=>x!=b)).slice(0,3);
+  const OF=[[-50,-40,-25,-20,20,25,40,50],[-15,-10,-5,-3,3,5,10,15],[-5,-3,-2,-1,1,2,3,5]];
+  let d;
+  if(g.o.num)d=near(+b,g.o.offs?g.o.offs[LV]:OF[LV]);
+  else{
+    // Fácil: falsas poco conocidas (la correcta destaca). Difícil: falsas muy conocidas (todas parecen posibles).
+    const pl=LV==0?[1,2]:LV==2?[0,1]:[0,1,2],vals=l=>[...new Set(l.flatMap(i=>g.r[i]).map(x=>x[c]))].filter(x=>x!=b);
+    let v=vals(pl);if(v.length<3)v=vals([0,1,2]);
+    d=sh(v).slice(0,3);
+  }
   return[q,b,...d].join("|");
 }
 let usedQ=new Set();
@@ -350,7 +358,7 @@ const WQ=[
 {k:"bk",c:3,t:"¿Quién escribió «{}»?",q:F("VALUES ?t{wd:Q8261 wd:Q7725634 wd:Q25379}?x wdt:P31 ?t;wdt:P50 ?y;",600,"?y rdfs:label ?b.","FILTER(?s>35)")},
 {k:"pt",c:3,t:"¿Quién pintó «{}»?",q:F("?x wdt:P31 wd:Q3305213;wdt:P170 ?y;",400,"?y rdfs:label ?b.","FILTER(?s>12)")},
 {k:"sym",c:4,t:"¿Cuál es el símbolo químico de este elemento: {}?",q:F("?x wdt:P31 wd:Q11344;wdt:P246 ?b;",130,"","")},
-{k:"atn",c:4,t:"¿Cuál es el número atómico de este elemento: {}?",o:{num:1,offs:[-1,1,-2,2,-3,3,-5,5,-10,10]},q:F("?x wdt:P31 wd:Q11344;wdt:P1086 ?b;",130,"","")},
+{k:"atn",c:4,t:"¿Cuál es el número atómico de este elemento: {}?",o:{num:1,offs:[[-10,-8,-5,5,8,10],[-5,-3,-2,2,3,5],[-2,-1,1,2,3]]},q:F("?x wdt:P31 wd:Q11344;wdt:P1086 ?b;",130,"","")},
 {k:"spo",c:5,t:"¿En qué deporte destaca {}?",q:F("?x wdt:P31 wd:Q5;wdt:P641 ?y;",800,"?y rdfs:label ?b.","FILTER(?s>70)")}
 ];
 let capSet=null;
@@ -363,34 +371,50 @@ function clean(rows,num){
   if(num)out=out.filter(r=>+r[1]>=1&&+r[1]<=2100);
   return out.sort((x,y)=>y[2]-x[2]);
 }
+const FL={};
 async function loadQ(w){
   const ck="wd1_"+w.k;let c=null;
   try{c=JSON.parse(localStorage.getItem(ck)||"null")}catch(e){}
   if(c&&Date.now()-c.t<6048e5)return c.r;
   try{
-    const ac=new AbortController(),tm=setTimeout(()=>ac.abort(),25000);
+    const ac=new AbortController(),tm=setTimeout(()=>ac.abort(),60000);
     const res=await fetch(WDE+encodeURIComponent(w.q),{headers:{Accept:"application/sparql-results+json"},signal:ac.signal});
-    clearTimeout(tm);if(!res.ok)throw 0;
+    clearTimeout(tm);
+    if(!res.ok){FL[w.k]="HTTP "+res.status;return c?c.r:null}
     const j=await res.json(),r=j.results.bindings.map(x=>[x.a.value,x.b.value,+x.s.value]);
     try{localStorage.setItem(ck,JSON.stringify({t:Date.now(),r}))}catch(e){}
     return r;
-  }catch(e){return c?c.r:null}
+  }catch(e){FL[w.k]=e&&e.name=="AbortError"?"tiempo agotado":"error de red";return c?c.r:null}
+}
+let okN=0,totN=0,doneN=0;
+function stWD(){
+  const bad=Object.keys(FL).map(k=>k+" ("+FL[k]+")").join(", ");
+  if(doneN<WQ.length)return setWD("🌐 Wikidata: cargando "+doneN+" de "+WQ.length+" listas… ("+totN+" datos)");
+  if(!okN)return setWD("📴 Sin conexión con Wikidata: se usan las preguntas incluidas"+(bad?" — "+bad:""));
+  setWD("🌐 Wikidata: "+okN+" de "+WQ.length+" listas cargadas, "+totN+" datos nuevos"+(bad?". No cargaron: "+bad:""));
+}
+async function addQ(w){
+  const r=await loadQ(w);doneN++;
+  if(!r){FL[w.k]=FL[w.k]||"sin respuesta"}
+  else{
+    delete FL[w.k];
+    let rows=clean(r,w.o&&w.o.num);
+    if(w.need){if(capSet)rows=rows.filter(x=>capSet.has(x[1]));else FL[w.k]="necesita las capitales"}
+    if(rows.length<12){FL[w.k]=FL[w.k]||"pocos datos"}
+    else{
+      if(w.k=="cap")capSet=new Set(rows.map(x=>x[0]));
+      const a1=Math.ceil(rows.length*.2),a2=Math.ceil(rows.length*.6),ch=[rows.slice(0,a1),rows.slice(a1,a2),rows.slice(a2)];
+      G.push({c:w.c,t:w.t,o:w.o||{},wd:1,r:ch.map(l=>l.map(x=>[x[0],x[1]]))});
+      okN++;totN+=rows.length;
+    }
+  }
+  stWD();
 }
 async function initWD(){
   setWD("🌐 Conectando con Wikidata…");
-  let ok=0,tot=0;
-  for(const w of WQ){
-    const r=await loadQ(w);if(!r)continue;
-    let rows=clean(r,w.o&&w.o.num);
-    if(w.need){if(!capSet)continue;rows=rows.filter(x=>capSet.has(x[1]))}
-    if(rows.length<12)continue;
-    if(w.k=="cap")capSet=new Set(rows.map(x=>x[0]));
-    const t=Math.ceil(rows.length/3),ch=[rows.slice(0,t),rows.slice(t,2*t),rows.slice(2*t)];
-    G.push({c:w.c,t:w.t,o:w.o||{},wd:1,r:ch.map(l=>l.map(x=>[x[0],x[1]]))});
-    ok++;tot+=rows.length;
-    setWD("🌐 Wikidata conectado: "+ok+" listas, "+tot+" datos nuevos");
-  }
-  if(!ok)setWD("📴 Sin conexión con Wikidata: se usan las preguntas incluidas");
+  await addQ(WQ[0]);
+  const q=WQ.slice(1);
+  await Promise.all([0,1,2].map(async()=>{while(q.length)await addQ(q.shift())}));
 }
 //WD-END
 initWD();
