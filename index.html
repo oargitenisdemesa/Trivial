@@ -41,6 +41,15 @@ input{width:100%;font:inherit;font-size:1.05rem;padding:13px;margin-bottom:10px;
 @keyframes pop{from{transform:scale(.2);opacity:0}}
 #fx{position:fixed;inset:0;z-index:6;pointer-events:none}
 @media(prefers-reduced-motion:reduce){#win .n{animation:none}}
+.modes{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:16px}.modes button{padding:10px 14px;font-size:.95rem}.modes button.on{background:#f5c542;color:#1b1630}
+.note{color:#f5c542;margin:0 0 12px;line-height:1.4}
+.p.outp{opacity:.45}
+.code{font-size:2.4rem;letter-spacing:.3em;text-align:center;margin:.2em 0;font-weight:700;color:#f5c542}
+.lb{list-style:none;padding:0;margin:0 0 12px}.lb li{padding:9px 12px;background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:6px}
+.rk{width:100%;border-collapse:collapse;margin:8px 0}.rk td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left}.rk td:first-child{width:2.2em;color:var(--mut)}.rk td:last-child{text-align:right;color:var(--mut)}.rk tr.me td{color:#f5c542;font-weight:700}
+#rkw{margin-top:26px}#rkw h2{font-size:1.2rem;text-align:center;margin:0 0 6px}
+#wrk{width:min(420px,100%);background:rgba(26,31,64,.85);border-radius:14px;padding:8px 12px;margin-bottom:18px}#wrk .sub{margin:8px 0}
+#win{overflow:auto}
 </style></head><body>
 <main>
 <h1>Trivial</h1>
@@ -48,14 +57,51 @@ input{width:100%;font:inherit;font-size:1.05rem;padding:13px;margin-bottom:10px;
 <div class="tools"><button class="sec" id="snd" aria-pressed="true">🔊 Audio: sí</button></div>
 
 <section id="setup">
+<div class="modes" id="modes"></div>
+<div class="err" id="err"></div>
+<div id="mLocal">
 <p class="sub">¿Cuántos jugáis?</p>
 <div class="cnt" id="cnt"></div>
+</div>
+<div id="lvBox">
 <p class="sub">Dificultad de las preguntas</p>
 <div class="cnt" id="lvl"></div>
+</div>
+<div id="mLocal2">
 <div id="names"></div>
-<div class="err" id="err"></div>
 <button id="go" style="width:100%">Empezar partida</button>
+</div>
+<div id="mHost" class="hide">
+<div id="hform">
+<input id="hn" maxlength="14" placeholder="Tu nombre" aria-label="Tu nombre">
+<button id="mk" style="width:100%">Crear sala</button>
+</div>
+<div id="room" class="hide">
+<p class="sub">Código de la sala</p>
+<p class="code" id="code"></p>
+<p class="sub">Pásalo a tus amigos: lo escriben en «Unirme a una sala».</p>
+<ul class="lb" id="lobby"></ul>
+<p class="sub" id="lbh"></p>
+<button id="hgo" style="width:100%">Empezar partida</button>
+</div>
+</div>
+<div id="mJoin" class="hide">
+<div id="jform">
+<input id="jc" maxlength="5" placeholder="Código de la sala" aria-label="Código de la sala" autocapitalize="characters" autocomplete="off">
+<input id="jn" maxlength="14" placeholder="Tu nombre" aria-label="Tu nombre">
+<button id="jb" style="width:100%">Unirme</button>
+</div>
+<div id="jwait" class="hide">
+<p class="sub">Estás dentro de la sala. Esperando a que el anfitrión empiece la partida…</p>
+<ul class="lb" id="jl"></ul>
+</div>
+</div>
 <p class="sub" id="wd" style="margin:14px 0 0;font-size:.9rem"></p>
+<div id="rkw">
+<h2>🏆 Ranking de txapeldunes</h2>
+<div id="rkBox"></div>
+<div class="tools"><button class="sec" id="rkClr">Borrar ranking</button></div>
+</div>
 </section>
 
 <section id="game" class="hide">
@@ -63,6 +109,8 @@ input{width:100%;font:inherit;font-size:1.05rem;padding:13px;margin-bottom:10px;
 <div class="panel">
 <div id="rollBox">
 <p class="turn" id="turn"></p>
+<p class="note hide" id="note"></p>
+<p class="note hide" id="tbn">⚔️ Desempate: los finalistas responden una pregunta. Quien falle queda eliminado/a (salvo que fallen todos).</p>
 <div class="die" id="die">?</div>
 <button id="roll">Tirar el dado</button>
 </div>
@@ -76,12 +124,14 @@ input{width:100%;font:inherit;font-size:1.05rem;padding:13px;margin-bottom:10px;
 <button id="next" class="hide">Siguiente jugador</button>
 </div>
 </div>
+<div class="tools" style="margin-top:14px"><button class="sec" id="quit">Salir de la partida</button></div>
 </section>
 </main>
 
 <div id="win" class="hide">
-<p class="c">🏆 CAMPEÓN/A 🏆</p>
+<p class="c">🏆 TXAPELDUN 🏆</p>
 <p class="n" id="wn"></p>
+<div id="wrk"></div>
 <button id="again">Jugar de nuevo</button>
 </div>
 <canvas id="fx"></canvas>
@@ -239,6 +289,9 @@ $("mic").onclick=()=>{
 };
 
 $("bar").innerHTML=C.map(c=>`<i style="background:${c[1]}"></i>`).join("");
+const vis=(id,on)=>$(id).classList.toggle("hide",!on);
+
+// ===== Pantalla de inicio =====
 function drawSetup(){
   $("cnt").innerHTML=[2,3,4].map(n=>`<button class="sec ${n==N?"on":""}" data-n="${n}">${n}</button>`).join("");
   $("lvl").innerHTML=LVN.map((n,i)=>`<button class="sec ${i==LV?"on":""}" data-l="${i}">${n}</button>`).join("");
@@ -249,6 +302,125 @@ $("cnt").onclick=e=>{const b=e.target.closest("button");if(b){N=+b.dataset.n;dra
 $("lvl").onclick=e=>{const b=e.target.closest("button");if(b){LV=+b.dataset.l;drawSetup()}};
 drawSetup();
 
+const MODES=[["local","En este dispositivo"],["host","Crear sala online"],["join","Unirme a una sala"]];
+let md="local";
+function setMode(m){
+  md=m;
+  $("modes").innerHTML=MODES.map(x=>`<button class="sec ${x[0]==m?"on":""}" data-m="${x[0]}">${x[1]}</button>`).join("");
+  vis("mLocal",m=="local");vis("mLocal2",m=="local");vis("mHost",m=="host");vis("mJoin",m=="join");vis("lvBox",m!="join");
+  $("err").textContent="";
+}
+$("modes").onclick=e=>{const b=e.target.closest("button");if(b&&b.dataset.m!=md){netClose();setMode(b.dataset.m)}};
+setMode("local");
+
+// ===== Ranking de ganadores (se guarda en este dispositivo) =====
+const RK="trivial_ranking_v1";
+function rkLoad(){try{return JSON.parse(localStorage.getItem(RK)||"{}")||{}}catch(x){return{}}}
+function rkAdd(name){
+  const r=rkLoad(),k=name.trim().toLowerCase(),it=r[k]||{n:name,w:0};
+  it.n=name;it.w++;r[k]=it;
+  try{localStorage.setItem(RK,JSON.stringify(r))}catch(x){}
+}
+const rkList=()=>Object.values(rkLoad()).sort((a,b)=>b.w-a.w||a.n.localeCompare(b.n,"es"));
+function rkHtml(hl,max){
+  const l=rkList().slice(0,max||10);
+  if(!l.length)return '<p class="sub">Todavía no hay ganadores.</p>';
+  return '<table class="rk">'+l.map((e,i)=>`<tr class="${hl&&e.n.toLowerCase()==hl.toLowerCase()?"me":""}"><td>${i+1}</td><td>${esc(e.n)}</td><td>${e.w} ${e.w==1?"victoria":"victorias"}</td></tr>`).join("")+"</table>";
+}
+const drawRank=()=>{$("rkBox").innerHTML=rkHtml()};
+$("rkClr").onclick=()=>{if(rkList().length&&confirm("¿Borrar todo el ranking?")){try{localStorage.removeItem(RK)}catch(x){}drawRank()}};
+drawRank();
+
+// ===== Motor del juego (en el anfitrión / en modo local) =====
+let S=null,mode="local",peer=null,conns=[],hostConn=null,me=-1,LB=[],started=false,myName="",askT=null,dieIv=null,lastKey="",curOk="";
+const PFX="trivial-es-";
+const full=p=>p.w.every(Boolean);
+const canAct=()=>!!S&&(mode=="local"||S.cur==me);
+const speaks=()=>mode=="local"||canAct();
+
+function beginRound(){
+  S.tbs=S.P.map((p,i)=>i).filter(i=>!S.P[i].out&&full(S.P[i])); // finalistas al empezar la ronda: responden pregunta de desempate
+  S.tbr={};
+  S.cur=S.P.findIndex(p=>!p.out);
+  S.tb=S.tbs.includes(S.cur);
+  S.ph="roll";
+}
+function newGame(names,pids){
+  pool=C.map(()=>[]);usedQ=new Set();clearTimeout(askT);askT=null;
+  S={gid:Date.now(),seq:0,rd:1,note:"",win:null,res:null,q:null,cat:0,nl:"",LV,
+     P:names.map((n,i)=>({name:n,w:Array(6).fill(false),out:false,gone:false,pid:pids?pids[i]:null}))};
+  beginRound();
+}
+function bc(){
+  S.seq++;
+  if(mode=="host")conns.forEach(c=>{try{if(c.open)c.send({t:"S",S})}catch(x){}});
+  render();
+}
+function nextIdx(){for(let i=S.cur+1;i<S.P.length;i++)if(!S.P[i].out)return i;return -1}
+function handle(a,from){
+  if(!S||S.ph=="win")return;
+  const p=S.P[S.cur];
+  if(a.t=="roll"){
+    if(S.ph!="roll"||from!=S.cur)return;
+    const miss=C.map((_,i)=>i).filter(i=>!p.w[i]);
+    S.cat=S.tb?Math.floor(Math.random()*6):pk(miss);
+    S.ph="rolling";bc();
+    askT=setTimeout(ask,1500);
+  }else if(a.t=="ans"){
+    if(S.ph!="question"||from!=S.cur)return;
+    const i=a.i;if(!(i>=0&&i<S.q.opts.length))return;
+    const good=S.q.opts[i]==curOk;let m;
+    if(S.tb){
+      S.tbr[S.cur]=good;
+      m=good?"¡Correcto! Sigues en la lucha por el título.":"Fallaste. La respuesta era: "+curOk+". Quedarás eliminado/a salvo que fallen todos los finalistas.";
+    }else if(good){
+      p.w[S.cat]=true;
+      m="¡Correcto! Quesito de "+C[S.cat][0]+" conseguido."+(full(p)?" ¡Ya tienes todos los quesitos! Hay que esperar a que acabe la ronda.":"");
+    }else m="Fallaste. La respuesta era: "+curOk;
+    S.res={i,good,ok:curOk,msg:m};S.ph="result";
+    const n=nextIdx();S.nl=n>=0?"Turno de "+S.P[n].name:"Terminar la ronda";
+    bc();
+  }else if(a.t=="next"){
+    if(S.ph!="result"||!(from==S.cur||(mode=="host"&&from==0)))return;
+    advance();
+  }
+}
+function ask(){
+  askT=null;
+  if(!S||S.ph!="rolling")return;
+  let raw=null;
+  if(Math.random()<.8)for(let i=0;i<10&&!raw;i++){const x=gen(S.cat);if(!usedQ.has(x.split("|")[0]))raw=x}
+  if(raw)usedQ.add(raw.split("|")[0]);else{if(!pool[S.cat].length)pool[S.cat]=sh(QL[LV][S.cat]);raw=pool[S.cat].pop()}
+  const f=raw.split("|");curOk=f[1];
+  S.q={cat:S.cat,text:f[0],opts:sh(f.slice(1))};S.res=null;S.ph="question";bc();
+}
+function advance(){
+  const n=nextIdx();
+  if(n>=0){S.cur=n;S.tb=S.tbs.includes(n);S.note="";S.ph="roll";bc()}
+  else endRound();
+}
+// Fin de ronda: aquí se decide si hay ganador
+function endRound(){
+  const Pl=S.P,nm=a=>a.map(i=>Pl[i].name).join(", ");
+  const fl=Pl.map((p,i)=>i).filter(i=>!Pl[i].out&&full(Pl[i]));          // con todos los quesitos
+  const failed=S.tbs.filter(i=>S.tbr[i]===false&&!Pl[i].out);            // finalistas que han fallado
+  const surv=fl.filter(i=>!failed.includes(i));                           // siguen con todos los quesitos
+  let note="";
+  if(!surv.length&&failed.length)note="Todos los finalistas han fallado: nadie queda eliminado y se repite el desempate.";
+  else{
+    failed.forEach(i=>Pl[i].out=true);
+    if(failed.length)note="Eliminados: "+nm(failed)+". ";
+    if(surv.length==1){S.win=surv[0];S.ph="win";S.note=note.trim();bc();return}
+    if(surv.length>1)note+="Empate con todos los quesitos entre "+nm(surv)+": siguen en juego.";
+  }
+  S.rd++;S.note=note.trim();beginRound();bc();
+}
+function act(a){
+  if(mode=="join"){try{hostConn.send({t:"act",a})}catch(x){}}
+  else handle(a,mode=="host"?me:S.cur);
+}
+
+// ===== Dibujo (en todos los dispositivos) =====
 function pie(w){
   let s='<svg viewBox="-50 -50 100 100" width="62" height="62" aria-hidden="true" style="flex:none">';
   for(let i=0;i<6;i++){
@@ -258,66 +430,60 @@ function pie(w){
   return s+"</svg>";
 }
 function drawPlayers(){
-  $("pl").innerHTML=P.map((p,i)=>`<div class="p ${i==cur?"act":""}">${pie(p.w)}<div><b>${esc(p.name)}</b><small>${p.w.filter(Boolean).length} de 6 quesitos</small></div></div>`).join("");
+  $("pl").innerHTML=S.P.map((p,i)=>`<div class="p ${(S.ph=="win"?i==S.win:i==S.cur)?"act":""} ${p.out?"outp":""}">${pie(p.w)}<div><b>${esc(p.name)}${mode!="local"&&i==me?" (tú)":""}</b><small>${p.out?(p.gone?"desconectado/a":"eliminado/a"):p.w.filter(Boolean).length+" de 6 quesitos"+(full(p)?" ⭐":"")}</small></div></div>`).join("");
 }
-$("go").onclick=()=>{
-  const v=[...document.querySelectorAll("#names input")].map(i=>i.value.trim());
-  unlock();
-  if(v.some(x=>!x)){$("err").textContent="Escribe el nombre de todos los jugadores.";return}
-  P=v.map(n=>({name:n,w:Array(6).fill(false)}));cur=0;pool=C.map(()=>[]);usedQ=new Set();
-  $("err").textContent="";$("setup").classList.add("hide");$("game").classList.remove("hide");
-  startTurn();
-};
-function startTurn(){
-  busy=false;drawPlayers();
-  $("turn").textContent="Turno de "+P[cur].name;
-  $("die").style.background="#444a7a";$("die").textContent="?";
-  $("rollBox").classList.remove("hide");$("qBox").classList.add("hide");
-  say("Turno de "+P[cur].name+". Tira el dado.");
+function animDie(){
+  const d=$("die");d.textContent="";let t=0;if(dieIv)clearInterval(dieIv);
+  dieIv=setInterval(()=>{d.style.background=C[Math.floor(Math.random()*6)][1];if(++t>11){clearInterval(dieIv);dieIv=null;d.style.background=C[S.cat][1];d.textContent="✔"}},80);
 }
-$("roll").onclick=()=>{
-  if(busy)return;busy=true;unlock();
-  const miss=C.map((_,i)=>i).filter(i=>!P[cur].w[i]);
-  cat=miss[Math.floor(Math.random()*miss.length)];
-  const d=$("die");d.textContent="";let t=0;
-  const iv=setInterval(()=>{d.style.background=C[Math.floor(Math.random()*6)][1];if(++t>11){clearInterval(iv);d.style.background=C[cat][1];d.textContent="✔";setTimeout(ask,600)}},80);
-};
-function ask(){
-  let raw=null;
-  if(Math.random()<.8)for(let i=0;i<10&&!raw;i++){const x=gen(cat);if(!usedQ.has(x.split("|")[0]))raw=x}
-  if(raw)usedQ.add(raw.split("|")[0]);else{if(!pool[cat].length)pool[cat]=sh(QL[LV][cat]);raw=pool[cat].pop()}
-  const f=raw.split("|"),ok=f[1];
-  $("rollBox").classList.add("hide");$("qBox").classList.remove("hide");
-  const l=$("catL");l.textContent=C[cat][0]+" · "+LVN[LV];l.style.background=C[cat][1];
-  $("qt").textContent=P[cur].name+": "+f[0];
-  $("res").classList.add("hide");$("next").classList.add("hide");
-  $("heard").textContent="";$("mic").disabled=false;
-  const o=$("opts");o.innerHTML="";
-  const op=sh(f.slice(1));
-  op.forEach((t,i)=>{
-    const b=document.createElement("button");b.dataset.t=t;b.textContent="ABCD"[i]+". "+t;
-    b.onclick=()=>answer(b,t==ok,ok);o.appendChild(b);
-  });
-  qSpeech=P[cur].name+". Categoría "+C[cat][0]+". "+f[0]+" "+op.map((t,i)=>"Opción "+"ABCD"[i]+": "+t+".").join(" ");
-  say(qSpeech);
+function render(){
+  if(!S)return;
+  vis("setup",false);vis("game",true);
+  const ph=S.ph,p=S.P[S.cur],mine=canAct(),key=S.gid+"-"+S.rd+"-"+S.cur+"-"+ph,fresh=key!=lastKey;
+  lastKey=key;
+  drawPlayers();
+  if(ph!="rolling"&&dieIv){clearInterval(dieIv);dieIv=null}
+  const showQ=ph=="question"||ph=="result";
+  vis("rollBox",!showQ);vis("qBox",showQ);
+  if(!showQ){
+    $("turn").textContent=(mode!="local"&&mine?"Es tu turno, ":"Turno de ")+p.name+" · ronda "+S.rd;
+    $("note").textContent=S.note||"";vis("note",!!S.note&&ph=="roll");
+    vis("tbn",!!S.tb&&ph=="roll");
+    $("roll").textContent=!mine?"Esperando a "+p.name+"…":S.tb?"Responder pregunta de desempate":"Tirar el dado";
+    $("roll").disabled=!mine||ph!="roll";
+    if(ph=="roll"){
+      $("die").style.background="#444a7a";$("die").textContent=S.tb?"⚔️":"?";
+      if(fresh&&speaks())say((S.note?S.note+" ":"")+"Turno de "+p.name+(S.tb?". Pregunta de desempate.":". Tira el dado."));
+    }
+    if(ph=="rolling"&&fresh)animDie();
+  }else{
+    const q=S.q,l=$("catL");
+    l.textContent=C[q.cat][0]+" · "+LVN[S.LV]+(S.tb?" · desempate":"");l.style.background=C[q.cat][1];
+    $("qt").textContent=p.name+": "+q.text;
+    const o=$("opts");o.innerHTML="";
+    q.opts.forEach((t,i)=>{
+      const b=document.createElement("button");b.dataset.t=t;b.textContent="ABCD"[i]+". "+t;
+      b.disabled=!mine||ph=="result";
+      if(ph=="result"){if(t==S.res.ok)b.classList.add("ok");else if(i==S.res.i&&!S.res.good)b.classList.add("ko")}
+      b.onclick=()=>act({t:"ans",i});o.appendChild(b);
+    });
+    qSpeech=p.name+". Categoría "+C[q.cat][0]+". "+q.text+" "+q.opts.map((t,i)=>"Opción "+"ABCD"[i]+": "+t+".").join(" ");
+    $("mic").classList.toggle("hide",!SR||!mine||ph!="question");$("mic").disabled=false;
+    vis("rep",mine&&ph=="question");
+    if(ph=="question"&&fresh){$("heard").textContent="";if(speaks())say(qSpeech)}
+    if(ph=="result"){
+      if(rec)rec.abort();
+      const r=$("res");r.textContent=S.res.msg;vis("res",true);
+      const n=$("next");n.textContent=S.nl;vis("next",mine||mode=="host");
+      if(fresh)say(S.res.good?S.res.msg:"Fallaste. La respuesta correcta era: "+S.res.ok);
+    }else{vis("res",false);vis("next",false)}
+  }
+  vis("win",ph=="win");
+  if(ph=="win"){if(fresh)showWin()}
+  else if(fx){fx=false;cx.clearRect(0,0,cv.width,cv.height)}
 }
-function answer(btn,good,ok){
-  const bs=[...document.querySelectorAll("#opts button")];
-  bs.forEach(b=>{b.disabled=true;if(b.dataset.t==ok)b.classList.add("ok")});
-  if(!good)btn.classList.add("ko");
-  $("mic").disabled=true;if(rec)rec.abort();
-  const r=$("res");r.classList.remove("hide");
-  if(good){
-    const nw=!P[cur].w[cat];P[cur].w[cat]=true;drawPlayers();
-    r.textContent="¡Correcto! Quesito de "+C[cat][0]+" conseguido.";
-    if(P[cur].w.every(Boolean)){say(r.textContent);setTimeout(win,1800);return}
-  }else r.textContent="Fallaste. La respuesta era: "+ok;
-  say(good?r.textContent:"Fallaste. La respuesta correcta era: "+ok);
-  const n=$("next");n.textContent="Turno de "+P[(cur+1)%P.length].name;n.classList.remove("hide");
-}
-$("next").onclick=()=>{cur=(cur+1)%P.length;startTurn()};
 
-// Victoria y fuegos artificiales
+// ===== Victoria, ranking y fuegos artificiales =====
 const cv=$("fx"),cx=cv.getContext("2d");let ps=[],fx=false,lb=0;
 function fit(){cv.width=innerWidth;cv.height=innerHeight}
 addEventListener("resize",fit);fit();
@@ -334,14 +500,149 @@ function loop(t){
   for(const p of ps){p.x+=p.vx;p.y+=p.vy;p.vy+=.06;p.vx*=.99;p.l-=.012;cx.fillStyle=`hsla(${p.h},100%,60%,${p.l})`;cx.beginPath();cx.arc(p.x,p.y,2.2,0,6.283);cx.fill()}
   requestAnimationFrame(loop);
 }
-function win(){
-  $("wn").textContent=P[cur].name;$("win").classList.remove("hide");
+function showWin(){
+  const w=S.P[S.win].name;
+  rkAdd(w);
+  $("wn").textContent=w;$("wrk").innerHTML=rkHtml(w,5);
+  $("again").textContent=mode=="host"?"Otra partida con los mismos":mode=="join"?"Salir":"Jugar de nuevo";
   fx=true;ps=[];requestAnimationFrame(loop);
-  say("¡Enhorabuena, "+P[cur].name+"! Eres el campeón o la campeona.");
+  say("¡Enhorabuena, "+w+"! Eres el txapeldun.");
 }
+$("roll").onclick=()=>{unlock();act({t:"roll"})};
+$("next").onclick=()=>act({t:"next"});
+$("go").onclick=()=>{
+  const v=[...document.querySelectorAll("#names input")].map(i=>i.value.trim());
+  unlock();
+  if(v.some(x=>!x)){$("err").textContent="Escribe el nombre de todos los jugadores.";return}
+  $("err").textContent="";mode="local";me=-1;newGame(v,null);bc();
+};
 $("again").onclick=()=>{
-  fx=false;cx.clearRect(0,0,cv.width,cv.height);$("win").classList.add("hide");
-  $("game").classList.add("hide");$("setup").classList.remove("hide");
+  if(mode=="host"){
+    const keep=S.P.filter(p=>!p.gone);
+    if(keep.length<2){netClose();setMode("local");return}
+    newGame(keep.map(p=>p.name),keep.map(p=>p.pid));bc();
+  }else if(mode=="join"){netClose();setMode("join")}
+  else{netClose();setMode("local")}
+};
+$("quit").onclick=()=>{if(confirm("¿Salir de la partida?")){const m=mode=="local"?"local":mode;netClose();setMode(m=="join"?"join":m=="host"?"host":"local")}};
+
+// ===== Online (PeerJS: conexión directa entre navegadores) =====
+function loadPeer(){
+  return new Promise((ok,ko)=>{
+    if(window.Peer)return ok();
+    const s=document.createElement("script");s.src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js";
+    s.onload=()=>ok();s.onerror=ko;document.head.appendChild(s);
+  });
+}
+function netClose(){
+  clearTimeout(askT);askT=null;
+  const p=peer;peer=null;try{if(p)p.destroy()}catch(x){}
+  conns=[];hostConn=null;LB=[];started=false;me=-1;mode="local";S=null;lastKey="";
+  fx=false;cx.clearRect(0,0,cv.width,cv.height);
+  if(TTS)TTS.cancel();
+  vis("win",false);vis("game",false);vis("setup",true);
+  vis("hform",true);vis("room",false);vis("jform",true);vis("jwait",false);
+  drawRank();
+}
+const makeCode=()=>{const a="ABCDEFGHJKLMNPQRSTUVWXYZ";return Array.from({length:5},()=>a[Math.floor(Math.random()*a.length)]).join("")};
+function drawLobby(){
+  $("lobby").innerHTML=LB.map((x,i)=>`<li>${esc(x.name)}${i==0?" (tú, anfitrión)":""}</li>`).join("");
+  $("lbh").textContent=LB.length<2?"Esperando a más jugadores… (mínimo 2, máximo 4)":LB.length+" jugadores en la sala.";
+  $("hgo").disabled=LB.length<2;
+}
+function lobbyBc(){
+  const names=LB.map(x=>x.name);
+  conns.forEach(c=>{try{if(c.open)c.send({t:"lobby",L:names})}catch(x){}});
+  drawLobby();
+}
+function openRoom(n,tries){
+  const code=makeCode(),p=new Peer(PFX+code);
+  p.on("open",()=>{
+    peer=p;mode="host";me=0;started=false;conns=[];LB=[{name:n,pid:"host"}];
+    $("err").textContent="";vis("hform",false);vis("room",true);$("code").textContent=code;drawLobby();
+  });
+  p.on("error",e=>{
+    if(e.type=="unavailable-id"&&tries<5){try{p.destroy()}catch(x){}openRoom(n,tries+1);return}
+    if(!peer||peer===p){const t=e.type;if(started){}else{netClose();setMode("host");$("err").textContent="Error de conexión ("+t+")."}}
+  });
+  p.on("connection",c=>{
+    c.on("data",m=>{
+      if(!m)return;
+      if(m.t=="join"){
+        const nm=String(m.name||"").trim().slice(0,14);
+        const no=t=>{try{c.send({t:"no",m:t})}catch(x){}};
+        if(started)return no("La partida ya ha empezado.");
+        if(LB.length>=4)return no("La sala está llena (máximo 4).");
+        if(!nm)return no("Escribe tu nombre.");
+        if(LB.some(x=>x.name.toLowerCase()==nm.toLowerCase()))return no("Ya hay un jugador con ese nombre.");
+        conns.push(c);LB.push({name:nm,pid:c.peer});
+        try{c.send({t:"joined"})}catch(x){}
+        lobbyBc();
+      }else if(m.t=="act"&&S){
+        const i=S.P.findIndex(q=>q.pid==c.peer);if(i>=0)handle(m.a,i);
+      }
+    });
+    c.on("close",()=>onLeave(c.peer));
+  });
+}
+function onLeave(pid){
+  if(!peer)return;
+  conns=conns.filter(c=>c.peer!=pid);
+  if(!started){LB=LB.filter(x=>x.pid!=pid);lobbyBc();return}
+  if(!S)return;
+  const i=S.P.findIndex(p=>p.pid==pid);if(i<0||S.P[i].gone)return;
+  S.P[i].out=true;S.P[i].gone=true;
+  if(S.ph=="win"){bc();return}
+  const alive=S.P.map((p,k)=>k).filter(k=>!S.P[k].out);
+  S.note=S.P[i].name+" se ha desconectado.";
+  if(alive.length<=1){S.win=alive[0];S.ph="win";bc();return}
+  if(S.cur==i){
+    clearTimeout(askT);askT=null;
+    const n=nextIdx();
+    if(n>=0){S.cur=n;S.tb=S.tbs.includes(n);S.ph="roll"}
+    else{endRound();return}
+  }
+  bc();
+}
+$("mk").onclick=()=>{
+  const n=$("hn").value.trim().slice(0,14);unlock();
+  if(!n){$("err").textContent="Escribe tu nombre.";return}
+  $("err").textContent="Creando sala…";myName=n;
+  loadPeer().then(()=>openRoom(n,0)).catch(()=>{$("err").textContent="No se pudo cargar el modo online. Comprueba tu conexión."});
+};
+$("hgo").onclick=()=>{
+  if(LB.length<2||started)return;
+  started=true;unlock();newGame(LB.map(x=>x.name),LB.map(x=>x.pid));bc();
+};
+function lost(){
+  if(!peer)return;
+  netClose();setMode("join");$("err").textContent="Se perdió la conexión con la sala.";
+}
+function onClientMsg(m){
+  if(!m)return;
+  if(m.t=="joined"){mode="join";$("err").textContent="";vis("jform",false);vis("jwait",true)}
+  else if(m.t=="lobby"){$("jl").innerHTML=m.L.map(n=>`<li>${esc(n)}</li>`).join("")}
+  else if(m.t=="no"){netClose();setMode("join");$("err").textContent=m.m}
+  else if(m.t=="S"){mode="join";S=m.S;LV=S.LV;me=S.P.findIndex(p=>p.pid==peer.id);render()}
+}
+$("jb").onclick=()=>{
+  const code=$("jc").value.trim().toUpperCase(),n=$("jn").value.trim().slice(0,14);unlock();
+  if(code.length<4||!n){$("err").textContent="Escribe el código de la sala y tu nombre.";return}
+  $("err").textContent="Conectando…";myName=n;
+  loadPeer().then(()=>{
+    const p=new Peer();peer=p;let ok=false;
+    const tm=setTimeout(()=>{if(!ok){netClose();setMode("join");$("err").textContent="No se pudo conectar con la sala."}},12000);
+    p.on("open",()=>{
+      const c=p.connect(PFX+code,{reliable:true});hostConn=c;
+      c.on("open",()=>c.send({t:"join",name:n}));
+      c.on("data",m=>{ok=true;clearTimeout(tm);onClientMsg(m)});
+      c.on("close",lost);
+    });
+    p.on("error",e=>{
+      clearTimeout(tm);const t=e.type;netClose();setMode("join");
+      $("err").textContent=t=="peer-unavailable"?"No existe esa sala. Revisa el código.":"Error de conexión ("+t+").";
+    });
+  }).catch(()=>{$("err").textContent="No se pudo cargar el modo online. Comprueba tu conexión."});
 };
 
 //WD-START
