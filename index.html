@@ -334,6 +334,7 @@ drawRank();
 // ===== Motor del juego (en el anfitrión / en modo local) =====
 let S=null,mode="local",peer=null,conns=[],hostConn=null,me=-1,LB=[],started=false,myName="",askT=null,dieIv=null,lastKey="",curOk="";
 const PFX="trivial-es-";
+const PCFG={config:{iceServers:[{urls:"stun:stun.l.google.com:19302"},{urls:"stun:stun1.l.google.com:19302"},{urls:"stun:global.stun.twilio.com:3478"},{urls:["turn:openrelay.metered.ca:80","turn:openrelay.metered.ca:443","turns:openrelay.metered.ca:443?transport=tcp"],username:"openrelayproject",credential:"openrelayproject"}]}};
 const full=p=>p.w.every(Boolean);
 const canAct=()=>!!S&&(mode=="local"||S.cur==me);
 const speaks=()=>mode=="local"||canAct();
@@ -556,11 +557,12 @@ function lobbyBc(){
   drawLobby();
 }
 function openRoom(n,tries){
-  const code=makeCode(),p=new Peer(PFX+code);
+  const code=makeCode(),p=new Peer(PFX+code,PCFG);
   p.on("open",()=>{
     peer=p;mode="host";me=0;started=false;conns=[];LB=[{name:n,pid:"host"}];
     $("err").textContent="";vis("hform",false);vis("room",true);$("code").textContent=code;drawLobby();
   });
+  p.on("disconnected",()=>{if(peer===p){try{p.reconnect()}catch(x){}}});
   p.on("error",e=>{
     if(e.type=="unavailable-id"&&tries<5){try{p.destroy()}catch(x){}openRoom(n,tries+1);return}
     if(!peer||peer===p){const t=e.type;if(started){}else{netClose();setMode("host");$("err").textContent="Error de conexión ("+t+")."}}
@@ -630,13 +632,13 @@ $("jb").onclick=()=>{
   if(code.length<4||!n){$("err").textContent="Escribe el código de la sala y tu nombre.";return}
   $("err").textContent="Conectando…";myName=n;
   loadPeer().then(()=>{
-    const p=new Peer();peer=p;let ok=false;
-    const tm=setTimeout(()=>{if(!ok){netClose();setMode("join");$("err").textContent="No se pudo conectar con la sala."}},12000);
+    const p=new Peer(undefined,PCFG);peer=p;let ok=false;
+    const tm=setTimeout(()=>{if(!ok){netClose();setMode("join");$("err").textContent="No se pudo conectar con la sala."}},20000);
     p.on("open",()=>{
       const c=p.connect(PFX+code,{reliable:true});hostConn=c;
       c.on("open",()=>c.send({t:"join",name:n}));
       c.on("data",m=>{ok=true;clearTimeout(tm);onClientMsg(m)});
-      c.on("close",lost);
+      c.on("close",lost);c.on("error",()=>{});
     });
     p.on("error",e=>{
       clearTimeout(tm);const t=e.type;netClose();setMode("join");
